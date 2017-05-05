@@ -1,0 +1,4 @@
+Average distance ant -> nearest foodpoint = 8.7 px
+vmax = 2px/tick
+tavg = 4,35 ticks
+ngen = 1024 ticks / 4,35 ticks = 235 ticks
