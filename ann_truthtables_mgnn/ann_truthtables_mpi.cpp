@@ -5,6 +5,7 @@
 #include <ctime>
 #include <list>
 #include <fstream>
+#include <unistd.h>
 
 #include <mpi.h>
 
@@ -17,8 +18,8 @@ using namespace std;
 #define MEMW 16
 
 #define LC 4
-#define NW NACTION+MEMW
-#define NDC NW+2 // Neuron data count
+#define NW 20//(NACTION+MEMW)
+#define NDC 22//(NW+2) // Neuron data count
 
 
 #define MGLC 1
@@ -79,7 +80,7 @@ class MGNetwork {
 	public:
 	
 	int score = 0;
-	float nn[MGLC][LC*NW*NDC][LC*NW*NDC];
+	float * nn = 0; //[MGLC][LC*NW*NDC][LC*NW*NDC];
 	
 	
 	void mutatenn(float tmnetwork[LC][NW][NDC]) {
@@ -97,7 +98,7 @@ class MGNetwork {
 			float new_activations[LC*NW*NDC] = {0};
 			for (int neuron=0;neuron<LC*NW*NDC;neuron++) {
 				for (int weight=0;weight<LC*NW*NDC;weight++) {
-					new_activations[neuron] += activations[weight]*nn[layer][neuron][weight];
+					new_activations[neuron] += activations[weight]*nn[layer*(LC*NW*NDC*LC*NW*NDC)+neuron*(LC*NW*NDC)+weight];
 				}
 			}
 			memcpy(activations, new_activations, sizeof(activations));
@@ -115,16 +116,24 @@ class MGNetwork {
 	}
 	
 	
-	MGNetwork(float nn_template[MGLC][LC*NW*NDC][LC*NW*NDC], bool mutate) {
-		memcpy(nn, nn_template, sizeof(nn));
+	MGNetwork(float * nn_template, bool mutate) {
+		nn = (float *) malloc(sizeof(float) * MGLC * LC*NW*NDC * LC*NW*NDC);
+		
+		if (nn == nullptr) {
+			cout << "Couldn't allocate nn\n";
+		}
+		
+		memcpy(nn, nn_template, sizeof(float)*MGLC*LC*NW*NDC*LC*NW*NDC);
 		score = 0;
+		
+		
 		
 		if (mutate) {
 			for (int l=0;l<MGLC;l++) {
 				for (int n=0;n<LC*NW*NDC;n++) {
 					for (int w=0;w<LC*NW*NDC;w++) {
 						if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
-							nn[l][n][w] += distribution(generator);
+							nn[l*(LC*NW*NDC*LC*NW*NDC)+n*(LC*NW*NDC)+w] += distribution(generator);
 						}
 					}
 				}
@@ -134,18 +143,29 @@ class MGNetwork {
 	}
 	
 	MGNetwork() {
-		memset(nn, 0, sizeof(nn));
+		nn = (float *) malloc(sizeof(float) * MGLC* LC*NW*NDC* LC*NW*NDC);
+		
+		if (nn == nullptr) {
+			cout << "Couldn't allocate nn\n";
+		}
+		
+		memset(nn, 0, sizeof(float)*MGLC*LC*NW*NDC*LC*NW*NDC);
 		score = 0;
 		
 		for (int l=0;l<MGLC;l++) {
 			for (int n=0;n<LC*NW*NDC;n++) {
 				for (int w=0;w<LC*NW*NDC;w++) {
 					if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
-						nn[l][n][w] += distribution(generator);
+						nn[l*(LC*NW*NDC*LC*NW*NDC)+n*(LC*NW*NDC)+w] += distribution(generator);
 					}
 				}
 			}
 		}
+	}
+	
+	~MGNetwork() {
+		cout << " kKEA zk,FQ AQ GDAjlhhwra lzh awdulhEQL Lg AUGDFG ZHEQK TG L,f k.utgqwQQQQQQQeh KI.T -K";
+		free(nn);
 	}
 	
 };
@@ -352,7 +372,7 @@ void write_genepool(list<Network> nets, list<MGNetwork> mgnets, char * fn) {
 	ofstream outfile(fn, ios_base::out | ios_base::binary);
 	
 	for (list<MGNetwork>::iterator it=mgnets.begin();it!=mgnets.end();it++) {
-		outfile.write(reinterpret_cast<char*>(&(*it)), sizeof(MGNetwork));
+		outfile.write(reinterpret_cast<char*>(it->nn), sizeof(*(it->nn)));
 	}
 	
 	for (list<Network>::iterator it=nets.begin();it!=nets.end();it++) {
@@ -412,26 +432,28 @@ int main_master(int argc, char ** argv) {
 	ifstream file(filename, ios_base::in | ios_base::binary);
 	if (file.is_open()) {
 		for (int s=0;s<mgnn_count;s++) {
-			MGNetwork * netptr = (MGNetwork *) malloc(sizeof(MGNetwork));
+			MGNetwork mgnet;
 			
 			cout << "[MASTER] Loading MutaGen network " << s << "\n";
-			file.read(reinterpret_cast<char*>(netptr), sizeof(MGNetwork));
+			file.read(reinterpret_cast<char*>(mgnet.nn), sizeof( *(mgnet.nn) ));
 			
-			netptr->score = 0;
+			mgnet.score = 0;
 			
-			mgnns.push_back(*netptr);
+			mgnns.push_back(mgnet);
 		}
 		
 		for (int s=0;s<entity_count;s++) {
 			Network * netptr = (Network *) malloc(sizeof(Network));
 			
+			
+			cout << "[MASTER] Loading neural network " << s << "\n";
+			file.read(reinterpret_cast<char*>(netptr), sizeof(Network));
+			
 			list<MGNetwork>::iterator it = mgnns.begin();
 			advance(it, s/2);
 			netptr->mgnn = &(*it);
-			 
-			cout << "[MASTER] Loading neural network " << s << "\n";
-			file.read(reinterpret_cast<char*>(netptr), sizeof(Network));
-
+			
+			
 			networks.push_back(*netptr);
 		}
 		
@@ -440,7 +462,7 @@ int main_master(int argc, char ** argv) {
 		file.close();	
 	} else {
 		for (int i=0;i<mgnn_count;i++) {
-			MGNetwork mgnet;
+			MGNetwork mgnet = new MGNetwork();
 			mgnns.push_back(mgnet);
 		}
 		
@@ -658,6 +680,9 @@ int main(int argc, char ** argv) {
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	
+	
+	
 	
 	entity_count = world_size-1;
 	
