@@ -86,12 +86,10 @@ class MGNetwork {
 	void mutatenn(float tmnetwork[LC][NW][NDC]) {
 		
 		float activations[LC*NW*NDC] = {0};
-		int c = 0;
+		
 		for (int i=0;i<(LC*NW*NDC);i++) {
 			activations[i] = distribution(generator);
-			c++;
 		}
-		cout << "C" << c << "\n";
 		
 		for (int layer=0;layer<MGLC;layer++) {
 			
@@ -104,13 +102,27 @@ class MGNetwork {
 			memcpy(activations, new_activations, sizeof(activations));
 		}
 		
+		float a = 0;
+		for (int d=0;d<LC*NW*NDC;d++) {
+			a += powf(activations[d], 2);
+		}
+		a = sqrtf(a);
+		
+		for (int d=0;d<LC*NW*NDC;d++) {
+			activations[d] = activations[d]/(a/2);
+		}		
+		
+		
 		for (int l=0;l<LC;l++) {
 			for (int n=0;n<NW;n++) {
 				for (int d=0;d<NDC;d++) {
 					tmnetwork[l][n][d] += activations[(l*(NW*NDC))+(n*NDC)+d];
+					//cout << activations[(l*(NW*NDC))+(n*NDC)+d] << " ";
 				}
 			}
 		}
+		
+		//cout << endl;
 		
 		
 	}
@@ -161,11 +173,6 @@ class MGNetwork {
 				}
 			}
 		}
-	}
-	
-	~MGNetwork() {
-		cout << " kKEA zk,FQ AQ GDAjlhhwra lzh awdulhEQL Lg AUGDFG ZHEQK TG L,f k.utgqwQQQQQQQeh KI.T -K";
-		free(nn);
 	}
 	
 };
@@ -462,7 +469,7 @@ int main_master(int argc, char ** argv) {
 		file.close();	
 	} else {
 		for (int i=0;i<mgnn_count;i++) {
-			MGNetwork mgnet = new MGNetwork();
+			MGNetwork mgnet;
 			mgnns.push_back(mgnet);
 		}
 		
@@ -536,6 +543,8 @@ int main_master(int argc, char ** argv) {
 				
 				new_mgnns.push_back(n1);
 				new_mgnns.push_back(n2);
+				
+				free(it->nn);
 			}
 			
 			mgnns = new_mgnns;
@@ -694,9 +703,6 @@ int main(int argc, char ** argv) {
 		main_slave();
 	}
 }
-	
-
-
 
 
 
