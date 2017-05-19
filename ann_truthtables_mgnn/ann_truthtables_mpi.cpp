@@ -27,7 +27,8 @@ using namespace std;
 
 
 #define MUTATION_RATE 0.5
-#define MUTATION_COUNT 0.01
+#define MUTATION_COUNT 0.005
+#define MGNN_MUTATION_COUNT 0.0025
 
 #define BIAS_MUTATION_RATIO 16
 
@@ -88,7 +89,9 @@ class MGNetwork {
 		float activations[LC*NW*NDC] = {0};
 		
 		for (int i=0;i<(LC*NW*NDC);i++) {
-			activations[i] = distribution(generator);
+			if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
+				activations[i] = distribution(generator);
+			}
 		}
 		
 		for (int layer=0;layer<MGLC;layer++) {
@@ -108,9 +111,11 @@ class MGNetwork {
 		}
 		a = sqrtf(a);
 		
-		for (int d=0;d<LC*NW*NDC;d++) {
-			activations[d] = activations[d]/(a/2);
-		}		
+		if (a >= 2) {
+			for (int d=0;d<LC*NW*NDC;d++) {
+				activations[d] = activations[d]/(a/2);
+			}		
+		}
 		
 		
 		for (int l=0;l<LC;l++) {
@@ -144,7 +149,7 @@ class MGNetwork {
 			for (int l=0;l<MGLC;l++) {
 				for (int n=0;n<LC*NW*NDC;n++) {
 					for (int w=0;w<LC*NW*NDC;w++) {
-						if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
+						if (rand() % ((int) (1.0/MGNN_MUTATION_COUNT)) == 0) {
 							nn[l*(LC*NW*NDC*LC*NW*NDC)+n*(LC*NW*NDC)+w] += distribution(generator);
 						}
 					}
@@ -167,7 +172,7 @@ class MGNetwork {
 		for (int l=0;l<MGLC;l++) {
 			for (int n=0;n<LC*NW*NDC;n++) {
 				for (int w=0;w<LC*NW*NDC;w++) {
-					if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
+					if (rand() % ((int) (1.0/MGNN_MUTATION_COUNT)) == 0) {
 						nn[l*(LC*NW*NDC*LC*NW*NDC)+n*(LC*NW*NDC)+w] += distribution(generator);
 					}
 				}
@@ -379,7 +384,7 @@ void write_genepool(list<Network> nets, list<MGNetwork> mgnets, char * fn) {
 	ofstream outfile(fn, ios_base::out | ios_base::binary);
 	
 	for (list<MGNetwork>::iterator it=mgnets.begin();it!=mgnets.end();it++) {
-		outfile.write(reinterpret_cast<char*>(it->nn), sizeof(*(it->nn)));
+		outfile.write(reinterpret_cast<char*>(it->nn), sizeof(float) * MGLC * LC*NW*NDC * LC*NW*NDC);
 	}
 	
 	for (list<Network>::iterator it=nets.begin();it!=nets.end();it++) {
@@ -442,7 +447,7 @@ int main_master(int argc, char ** argv) {
 			MGNetwork mgnet;
 			
 			cout << "[MASTER] Loading MutaGen network " << s << "\n";
-			file.read(reinterpret_cast<char*>(mgnet.nn), sizeof( *(mgnet.nn) ));
+			file.read(reinterpret_cast<char*>(mgnet.nn), sizeof(float) * MGLC * LC*NW*NDC * LC*NW*NDC);
 			
 			mgnet.score = 0;
 			
@@ -501,6 +506,7 @@ int main_master(int argc, char ** argv) {
 		int slave = 1;
 		for (list<Network>::iterator it=networks.begin();it!=networks.end();it++) {
 			sendnn(it->nn, slave);
+			cout << "Send nn " << slave;
 			slave++;
 		}
 		
@@ -510,7 +516,7 @@ int main_master(int argc, char ** argv) {
 		for (list<Network>::iterator it=networks.begin();it!=networks.end();it++) {
 			int score = 0;
 			MPI_Recv(&score, 1, MPI_INT, slave, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			
+			cout << "Recv nn " << slave;
 			
 			for (int i=0;i<SCENLENGHT;i++) {
 				int s;
@@ -530,7 +536,7 @@ int main_master(int argc, char ** argv) {
 		
 		if ((gen+1) % 4 == 0) {
 			mgnns.sort(compare_scores_mgn);
-			
+			cout << "MGNN Sort";
 			int count = 0;
 			
 			list<MGNetwork> new_mgnns;
@@ -552,7 +558,7 @@ int main_master(int argc, char ** argv) {
 			count = 0;
 			
 			for (list<Network>::iterator it=networks.begin();it!=networks.end();it++) {
-				
+				cout << "Assigning " << count;
 				list<MGNetwork>::iterator net_it=mgnns.begin();
 				advance(net_it, count/2); 
 				it->mgnn = &(*net_it);
@@ -577,7 +583,7 @@ int main_master(int argc, char ** argv) {
 			it->score = 0;
 			it->mgnn->score = 0;
 		}
-		
+		cout << "Reset nns";
 		
 		
 		list<Network> new_nets;
@@ -592,17 +598,23 @@ int main_master(int argc, char ** argv) {
 			if (count > (entity_count/2)) {
 				break;
 			}
-			
+			cout << count << "\n";
 			if (!g) {
 				g = true;
+				cout << "g1";
 				memcpy(gnn, it->nn, sizeof(gnn));
+				cout << "g2";
 				continue;
 			}
+			
+			cout << "memcpy'd";
 			
 			g = false;
 			
 			
 			float nn_median[LC][NW][NDC] = {0};
+			
+			
 			
 			for (int l=0;l<LC;l++) {
 				for (int n=0;n<NW;n++) {
@@ -612,12 +624,16 @@ int main_master(int argc, char ** argv) {
 				}
 			}
 			
+			
+			
 			for (int i=0;i<4;i++) {
+				cout << "mgnn";
 				list<MGNetwork>::iterator it = mgnns.begin();
-				advance(it, rand() % mgnn_count);
-				
+				cout << "1";
+				advance(it, (count/4)*4+(i/2));
+				cout << "2";
 				Network net(nn_median, true, &(*it));
-				
+				cout << "3";
 				new_nets.push_back(net);
 			}	
 			
