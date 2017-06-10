@@ -17,8 +17,8 @@ using namespace std;
 #define MEMW 16
 
 #define LC 4
-#define NW NACTION+MEMW
-#define NDC NW+2 // Neuron data count
+#define NW (NACTION+MEMW)
+#define NDC (NW+2) // Neuron data count
 
 
 #define MUTATION_RATE 0.5
@@ -93,6 +93,7 @@ class Network {
 	int score = 0;
 	
 	float nn[LC][NW][NDC];
+	bool mutation_map[LC][NW][NDC];
 	float last_a[LC][NW];
 	
 	float memory[MEMW];
@@ -160,6 +161,7 @@ class Network {
 		memcpy(nn, nn_template, sizeof(nn));
 		memset(memory, 0, sizeof(memory));
 		memset(last_a, 0, sizeof(last_a));
+		memset(mutation_map, 0, sizeof(mutation_map));
 		
 		
 		
@@ -178,6 +180,8 @@ class Network {
 							if (d == NW && nn[l][n][d] < 0) {
 								nn[l][n][d] = 0;
 							}
+							
+							mutation_map[l][n][d] = true;
 							
 						}
 						
@@ -342,10 +346,21 @@ int main_master(int argc, char ** argv) {
 		cout << "[MASTER] =!=!=!=!=!=!=!=!=!=!=!=!=! ATTENTION !=!=!=!=!=!=!=!=!=!=!=!=!=\n[MASTER] Assuming combinative mode\n";
 	}
 	
-	bool lognn = false;
-	
+	int combine_mode = 0;
 	if (argc >= 4) {
-		if (strcmp(argv[3], "--lognn") == 0) {
+		if (strcmp(argv[3], "--average") == 0) {
+			combine_mode = 0;
+		} else if (strcmp(argv[3], "--neuron-unit") == 0) {
+			combine_mode = 1;
+		} else if (strcmp(argv[3], "--mutation-combination") == 0) {
+			combine_mode = 2;
+		}
+	}
+	
+	
+	bool lognn = false;
+	if (argc >= 5) {
+		if (strcmp(argv[4], "--lognn") == 0) {
 			lognn = true;
 		}
 	}
@@ -459,8 +474,7 @@ int main_master(int argc, char ** argv) {
 		} else {
 			
 			bool g = false;
-			float gnn[LC][NW][NDC] = {0};
-			
+			Network * gnet;
 			
 			
 			for (list<Network>::iterator it=networks.begin();it!=networks.end();it++) {
@@ -471,7 +485,7 @@ int main_master(int argc, char ** argv) {
 				
 				if (!g) {
 					g = true;
-					memcpy(gnn, it->nn, sizeof(gnn));
+					gnet = &(*it);
 					continue;
 				}
 				
@@ -482,9 +496,39 @@ int main_master(int argc, char ** argv) {
 				
 				for (int l=0;l<LC;l++) {
 					for (int n=0;n<NW;n++) {
-						for (int d=0;d<NDC;d++) {
-							nn_median[l][n][d] = (it->nn[l][n][d]+gnn[l][n][d])/2;
+						
+						if (combine_mode == 0) {
+							for (int d=0;d<NDC;d++) {
+								nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
+							}
+						} 
+						
+						else if (combine_mode == 1) {
+							if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
+								memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+							} else {
+								memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+							}
+						} 
+						
+						else if (combine_mode == 2) {
+							
+							for (int d=0;d<NDC;d++) {
+								if (gnet->mutation_map[l][n][d] > it->mutation_map[l][n][d]) {
+									nn_median[l][n][d] = gnet->nn[l][n][d];
+								}
+								
+								else if (gnet->mutation_map[l][n][d] < it->mutation_map[l][n][d]) {
+									nn_median[l][n][d] = it->nn[l][n][d];
+								}
+								
+								else {
+									nn_median[l][n][d] = (gnet->nn[l][n][d]+it->nn[l][n][d])/2;
+								}
+							}
 						}
+							
+						
 					}
 				}
 				
