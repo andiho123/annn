@@ -356,7 +356,7 @@ int main_master(int argc, char ** argv) {
 			combine_mode = 1;
 		} else if (strcmp(argv[3], "--mutation-combination") == 0) {
 			combine_mode = 2;
-		} else if (strcmp(argv[3], "--hybrid") == 0) {
+		} else if (strcmp(argv[3], "--hybridnm") == 0) {
 			combine_mode = 3;
 		} else {
 			cout << "[Master] Invalid argument\n";
