@@ -330,7 +330,7 @@ int main_master(int argc, char ** argv) {
 	if (argc >= 2) {
 		filename = argv[1];
 	} else {
-		cout << "[MASTER] No file name specified, aborting!\n";
+		cout << "[Master] No file name specified, aborting!\n";
 		exit(0);
 	}
 	
@@ -340,10 +340,12 @@ int main_master(int argc, char ** argv) {
 		} else if (strcmp(argv[2], "--combinative") == 0) {
 			combine_best = true;
 		} else {
-			cout << "[MASTER] =!=!=!=!=!=!=!=!=!=!=!=!=! ATTENTION !=!=!=!=!=!=!=!=!=!=!=!=!=\n[MASTER] Assuming combinative mode\n";
+			cout << "[Master] Invalid argument\n";
+			exit(0);
 		}
 	} else {
-		cout << "[MASTER] =!=!=!=!=!=!=!=!=!=!=!=!=! ATTENTION !=!=!=!=!=!=!=!=!=!=!=!=!=\n[MASTER] Assuming combinative mode\n";
+		cout << "[Master] Too few arguments\n";
+		exit(0);
 	}
 	
 	int combine_mode = 0;
@@ -354,7 +356,15 @@ int main_master(int argc, char ** argv) {
 			combine_mode = 1;
 		} else if (strcmp(argv[3], "--mutation-combination") == 0) {
 			combine_mode = 2;
+		} else if (strcmp(argv[3], "--hybrid") == 0) {
+			combine_mode = 3;
+		} else {
+			cout << "[Master] Invalid argument\n";
+			exit(0);
 		}
+	} else {
+		cout << "[Master] Too few arguments\n";
+		exit(0);
 	}
 	
 	
@@ -367,7 +377,7 @@ int main_master(int argc, char ** argv) {
 	
 	
 	if ((world_size-1) % 2 == 1) {
-		cout << "[MASTER] Uneven number of slave processes, aborting!\n";
+		cout << "[Master] Uneven number of slave processes, aborting!\n";
 		exit(0);
 	}
 	
@@ -382,7 +392,7 @@ int main_master(int argc, char ** argv) {
 	if (file.is_open()) {
 		for (int s=0;s<entity_count;s++) {
 			Network * netptr = (Network *) malloc(sizeof(Network));
-			cout << "[MASTER] Loading neural network " << s << "\n";
+			cout << "[Master] Loading neural network " << s << "\n";
 			file.read(reinterpret_cast<char*>(netptr), sizeof(Network));
 			
 			networks.push_back(*netptr);
@@ -439,7 +449,7 @@ int main_master(int argc, char ** argv) {
 		
 		
 		
-		cout << "[MASTER] SD=";
+		cout << "[Master] SD=";
 		for (int i=0;i<SCENLENGHT;i++) {
 			cout << score_dist[i] << ",";
 		}
@@ -527,8 +537,38 @@ int main_master(int argc, char ** argv) {
 								}
 							}
 						}
-							
 						
+						else if (combine_mode == 3) { 
+							
+							bool gmut = false;
+							bool itmut = false;
+							
+							for (int d=0;d<NDC;d++) {
+								if (it->mutation_map[l][n][d]) {
+									itmut = true;
+								}
+								
+								if (gnet->mutation_map[l][n][d]) {
+									gmut = true;
+								}
+							}
+							
+							if (gmut > itmut) {
+								memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+							} else if (itmut > gmut) {
+								memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+							}
+							
+							else if (itmut == gmut) {
+								
+								if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
+									memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+								} else {
+									memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+								}
+								
+							}
+						}
 					}
 				}
 				
