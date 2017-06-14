@@ -196,6 +196,7 @@ class Network {
 };
 
 int score_dist[SCENLENGHT] = {0};
+
 int rate_network(Network network, int cycles, int iterations) {
 	
 	int score = 0;
@@ -358,6 +359,8 @@ int main_master(int argc, char ** argv) {
 			combine_mode = 2;
 		} else if (strcmp(argv[3], "--hybridnm") == 0) {
 			combine_mode = 3;
+		} else if (strcmp(argv[3], "--hybridam") == 0) {
+			combine_mode = 4;
 		} else {
 			cout << "[Master] Invalid argument\n";
 			exit(0);
@@ -538,7 +541,7 @@ int main_master(int argc, char ** argv) {
 							}
 						}
 						
-						else if (combine_mode == 3) { 
+						else if (combine_mode == 3 || combine_mode == 4) { 
 							
 							bool gmut = false;
 							bool itmut = false;
@@ -561,10 +564,16 @@ int main_master(int argc, char ** argv) {
 							
 							else if (itmut == gmut) {
 								
-								if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
-									memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
-								} else {
-									memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+								if (combine_mode == 3) {
+									if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
+										memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+									} else {
+										memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+									}
+								} else if (combine_mode == 4) {
+									for (int d=0;d<NDC;d++) {
+										nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
+									}
 								}
 								
 							}
