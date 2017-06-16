@@ -8,285 +8,13 @@
 
 #include <mpi.h>
 
-using namespace std;
-
-
-#define NACTION 4
-#define NSTATE 4
-
-#define MEMW 16
-
-#define LC 4
-#define NW (NACTION+MEMW)
-#define NDC (NW+2) // Neuron data count
-
-
-#define MUTATION_RATE 0.5
-#define MUTATION_COUNT 0.01
-
-#define BIAS_MUTATION_RATIO 16
+#include <network.h>
+#include <rate_truthtables.h>
 
 #define SPFR 2048
 #define SCENLENGHT 100
 
-
-float mutation_rate = 1.0;
-float mutation_factor = 1.0;
-
-default_random_engine generator;
-normal_distribution<float> distribution(0.0, MUTATION_RATE);
-
-bool  AND[2][2] = {{0, 0}, {0, 1}};
-bool   OR[2][2] = {{0, 1}, {1, 1}};
-
-bool NAND[2][2] = {{1, 1}, {1, 0}};
-bool  NOR[2][2] = {{1, 0}, {0, 0}};
-
-bool  XOR[2][2] = {{0, 1}, {1, 0}};
-bool XNOR[2][2] = {{1, 0}, {0, 1}};
-
-
-float sigmoid(float z) {
-	return z;
-}
-
-float memory_sigmoid(float a) {
-	return 2.0/(1+expf(-a))-1.0;
-}
-
-void nndump(float nn[LC][NW][NDC]) {
-	cout << "[";
-	for (int l=0;l<LC;l++) {
-		cout << "[";
-		for (int n=0;n<NW;n++) {
-			cout << "[";
-			for (int d=0;d<NDC;d++) {
-				cout << nn[l][n][d] << ", ";
-			}
-			cout << "], \n";
-		}
-		cout << "], \n\n";
-	}
-	cout << "]\n\n\n\n";
-}
-
-void nrdump(float nr[NW]) {
-	cout << "[";
-	for (int n=0;n<NW;n++) {
-		cout << nr[n] << ", ";
-	}
-	cout << "]\n";
-}
-
-void sdump(bool states[NSTATE]) {
-	cout << "[";
-	for (int s=0;s<NSTATE;s++) {
-		cout << states[s] << ", ";
-	}
-	cout << "]\n";
-}
-
-
-class Network {
-	public:
-	
-	int score = 0;
-	
-	float nn[LC][NW][NDC];
-	bool mutation_map[LC][NW][NDC];
-	float last_a[LC][NW];
-	
-	float memory[MEMW];
-	
-	void propagate(float input[NW], float output[NW]) {
-		
-		float activations[NW];
-		memcpy(activations, input, sizeof(activations));
-		
-		
-		for (int l=0;l<LC;l++) {
-			
-			float new_activations[NW] = {0};
-			
-			
-			for (int n=0;n<NW;n++) {
-				for (int w=0;w<NW;w++) {
-					new_activations[n] += nn[l][n][w] * activations[w]; // GRRRR jhh<aefigaef ddgki adf kgladf kgl
-				}
-				
-				new_activations[n] += nn[l][n][NW+1];
-				
-				new_activations[n] = (sigmoid(new_activations[n])-last_a[l][n])*(1.0/(1+nn[l][n][NW+0]))+last_a[l][n];
-				last_a[l][n] = new_activations[n];
-			}
-			memcpy(activations, new_activations, sizeof(new_activations));
-			
-		}
-		memcpy(output, activations, sizeof(activations));
-		
-	}
-	
-	void get_actions(bool states[NSTATE], bool actions[NACTION]) {
-		
-		float input[NW] = {0};
-		
-		for (int i=0;i<NSTATE;i++) {
-			input[i] = states[i]?1.0:0.0;
-		}
-		
-		for (int i=0;i<MEMW;i++) {
-			input[i+NSTATE] = memory_sigmoid(memory[i]);
-		}
-		
-		float output[NW] = {0.0}; 
-		propagate(input, output);
-		
-		
-		
-		
-		for (int i=0;i<NACTION;i++) {
-			actions[i] = (output[i] > sigmoid(0));
-		}
-		
-		memcpy(memory, &output[NACTION], sizeof(memory));
-	}
-	
-	void reset() {
-		memset(memory, 0, sizeof(memory));
-		memset(last_a, 0, sizeof(last_a));
-	}
-	
-	Network(float nn_template[LC][NW][NDC], bool mutate) {
-		
-		memcpy(nn, nn_template, sizeof(nn));
-		memset(memory, 0, sizeof(memory));
-		memset(last_a, 0, sizeof(last_a));
-		memset(mutation_map, 0, sizeof(mutation_map));
-		
-		
-		
-		if (mutate) {
-			for (int l=0;l<LC;l++) {
-				for (int n=0;n<NW;n++) {
-					for (int d=0;d<NDC;d++) {
-						if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
-							float delta_w = distribution(generator)*mutation_rate*mutation_factor;
-							
-							if (d == NW+1) {
-								delta_w /= BIAS_MUTATION_RATIO; 
-							}
-							nn[l][n][d] += delta_w;
-							
-							if (d == NW && nn[l][n][d] < 0) {
-								nn[l][n][d] = 0;
-							}
-							
-							mutation_map[l][n][d] = true;
-							
-						}
-						
-					}
-				}
-			}
-		}
-		
-		
-	}
-
-};
-
-int score_dist[SCENLENGHT] = {0};
-
-int rate_network(Network network, int cycles, int iterations) {
-	
-	int score = 0;
-	
-	bool states[NSTATE] = {0};
-	
-	memset(score_dist, 0, sizeof(score_dist));
-	
-	int dep_actions[NSTATE][2];
-	bool conditions[NSTATE][2][2];
-	
-	for (int cycle=0;cycle<cycles;cycle++) {
-		
-		for (int s=0;s<NSTATE;s++) {
-			dep_actions[s][0] = rand() % NACTION;
-			dep_actions[s][1] = rand() % NACTION;
-			
-			
-			int function = rand() % 6;
-			
-			//cout << s << ": " << function << " " << dep_actions[s][0] << dep_actions[s][1] << "\n";
-			
-			switch (function) {
-				case 0:
-					memcpy(conditions[s], AND, 2*2*sizeof(bool));
-					break;
-				case 1:
-					memcpy(conditions[s], OR, 2*2*sizeof(bool));
-					break;
-				case 2:
-					memcpy(conditions[s], NAND, 2*2*sizeof(bool));
-					break;
-				case 3:
-					memcpy(conditions[s], NOR, 2*2*sizeof(bool));
-					break;
-				case 4:
-					memcpy(conditions[s], XOR, 2*2*sizeof(bool));
-					break;
-				case 5:
-					memcpy(conditions[s], XNOR, 2*2*sizeof(bool));
-					break;
-			}
-			
-		}
-		
-		for (int i=0;i<iterations;i++) {
-			bool actions[NACTION] = {false};
-			
-
-			network.get_actions(states, actions);
-			
-			
-			
-			bool new_states[NSTATE] = {false};
-			
-			for (int s=0;s<NSTATE;s++) {
-				bool con1 = actions[dep_actions[s][0]];
-				bool con2 = actions[dep_actions[s][1]];
-				
-				new_states[s] = conditions[s][con1][con2];
-			}
-			
-			//cout << "Actions: "; sdump(actions);
-			//cout << "States:  "; sdump(new_states);
-			//cout << "\n";
-			
-			memcpy(states, new_states, sizeof(states));
-			
-			
-			score += states[0];
-			score_dist[i] += states[0];
-			
-			score -= states[3];
-			score_dist[i] -= states[3];
-		}
-		
-		network.reset();
-		
-	}
-	/*for (int i=0;i<iterations;i++) {
-		cout << score_dist[i] << "\t";
-	}
-	cout << "\n";
-	*/
-	
-	return score;
-
-}
-
-
+using namespace std;
 
 bool compare_scores(const Network net1, const Network net2) {
 	return (net1.score > net2.score);
@@ -319,6 +47,8 @@ void sendnn(float nn[LC][NW][NDC], int slave) {
 
 float last_scores[128] = {0};
 int gen = 0;
+
+float mutation_rate = 1;
 
 int main_master(int argc, char ** argv) {
 	
@@ -403,7 +133,7 @@ int main_master(int argc, char ** argv) {
 		file.close();	
 	} else {
 		for (int i=0;i<entity_count;i++) {
-			Network n(rho, true);
+			Network n(rho, true, 0);
 			networks.push_back(n);
 		}
 	}
@@ -439,7 +169,6 @@ int main_master(int argc, char ** argv) {
 			for (int i=0;i<SCENLENGHT;i++) {
 				int s;
 				MPI_Recv(&s, 1, MPI_INT, slave, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				score_dist[i] += s;
 			}
 			
 			
@@ -451,11 +180,6 @@ int main_master(int argc, char ** argv) {
 		}
 		
 		
-		
-		cout << "[Master] SD=";
-		for (int i=0;i<SCENLENGHT;i++) {
-			cout << score_dist[i] << ",";
-		}
 		cout << "\n";
 		
 		networks.sort(compare_scores);
@@ -476,8 +200,8 @@ int main_master(int argc, char ** argv) {
 					break;
 				}
 				
-				Network net1(it->nn, true);
-				Network net2(it->nn, true);
+				Network net1(it->nn, true, mutation_rate);
+				Network net2(it->nn, true, mutation_rate);
 				
 				new_nets.push_back(net1);
 				new_nets.push_back(net2);
@@ -582,7 +306,7 @@ int main_master(int argc, char ** argv) {
 				}
 				
 				for (int i=0;i<4;i++) {
-					Network net(nn_median, true);
+					Network net(nn_median, true, mutation_rate);
 					
 					new_nets.push_back(net);
 				}	
@@ -612,7 +336,7 @@ int main_master(int argc, char ** argv) {
 		
 		
 		
-		mutation_factor = ((SPFR*SCENLENGHT*0.704375)-lavg)/(SPFR*SCENLENGHT*0.704375);
+		mutation_rate = ((SPFR*SCENLENGHT*0.704375)-lavg)/(SPFR*SCENLENGHT*0.704375);
 		
 		cout << gen << "\t" << avg/(SPFR*SCENLENGHT) << "\t" << lavg/(SPFR*SCENLENGHT) << "\n";
 		logfile << avg/(SPFR*SCENLENGHT) << "," << lavg/(SPFR*SCENLENGHT) << "\n";
@@ -647,17 +371,11 @@ int main_slave() {
 			}
 		}
 		
-		Network network(nn, false);
+		Network network(nn, false, 0);
 		int score = rate_network(network, SPFR, SCENLENGHT);
 		
 		
 		MPI_Send(&score, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
-		
-		for (int i=0;i<SCENLENGHT;i++) {
-			MPI_Send(&score_dist[i], 1, MPI_INT, 0, 3, MPI_COMM_WORLD);
-		}
-		
-		
 		
 	}
 }
@@ -679,10 +397,3 @@ int main(int argc, char ** argv) {
 		main_slave();
 	}
 }
-	
-
-
-
-
-
-
