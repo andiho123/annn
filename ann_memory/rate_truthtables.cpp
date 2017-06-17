@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstring>
 #include <random>
 
@@ -16,7 +17,6 @@ bool XNOR[2][2] = {{1, 0}, {0, 1}};
 
 
 int rate_network(Network network, int cycles, int iterations) {
-	
 	
 	
 	int score = 0;
@@ -72,7 +72,7 @@ int rate_network(Network network, int cycles, int iterations) {
 			
 			bool new_states[NACTION] = {false};
 			for (int i=0;i<NACTION;i++) {
-				new_states[i] = (output[i]>sigmoid(0))?1:0;
+				actions[i] = (output[i]>sigmoid(0))?1:0;
 			}
 			
 			
@@ -92,8 +92,10 @@ int rate_network(Network network, int cycles, int iterations) {
 		}
 		
 		network.reset();
+		memset(states, 0, sizeof(states));
 		
 	}
+	
 	
 	return score;
  

@@ -5,20 +5,6 @@
 
 #include "network.h"
 
-#define NACTION 4
-#define NSTATE 4
-
-#define MEMW 16
-
-#define LC 4
-#define NW (NACTION+MEMW)
-#define NDC (NW+2) // Neuron data count
-
-
-#define MUTATION_RATE 0.5
-#define MUTATION_COUNT 0.01
-
-#define BIAS_MUTATION_RATIO 16
 
 
 float sigmoid(float z) {
@@ -62,15 +48,23 @@ void Network::propagate(float input[NW], float output[NW]) {
 	
 }
 
-void Network::iteration(float input[NSTATE], float output[NACTION]) {
+void Network::iteration(float state_input[NSTATE], float state_output[NACTION]) {
+	
+	float input[NW] = {0};
+	
+	memcpy(input, state_input, sizeof(float)*NSTATE);
 	
 	for (int i=0;i<MEMW;i++) {
 		input[i+NSTATE] = memory_sigmoid(this->memory[i]);
 	}
 	
+	float output[NW];
+	
 	propagate(input, output);
 	
 	memcpy(this->memory, &output[NACTION], sizeof(this->memory));
+	
+	memcpy(state_output, output, sizeof(float)*NACTION);
 }
 
 void Network::reset() {

@@ -140,7 +140,7 @@ int main_master(int argc, char ** argv) {
 	
 	
 	
-	char * logfilename = (char *) malloc(sizeof(char)*(strlen(filename)+5));
+	char * logfilename = (char *) malloc(sizeof(char)*(strlen(filename)+7));
 	strcpy(logfilename, filename);
 	strcat(logfilename, ".flog");
 	
@@ -371,10 +371,13 @@ int main_slave() {
 			}
 		}
 		
+		cout << "[" << world_rank << "] Received neural network\n";
+		
 		Network network(nn, false, 0);
+		cout << "[" << world_rank << "] Rating\n";
 		int score = rate_network(network, SPFR, SCENLENGHT);
 		
-		
+		cout << "[" << world_rank << "] Sending score\n";
 		MPI_Send(&score, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		
 	}
@@ -382,7 +385,7 @@ int main_slave() {
 
 int main(int argc, char ** argv) {
 	
-	MPI_Init(NULL, NULL);
+	MPI_Init(&argc, &argv);
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
