@@ -166,12 +166,6 @@ int main_master(int argc, char ** argv) {
 			int score = 0;
 			MPI_Recv(&score, 1, MPI_INT, slave, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			
-			for (int i=0;i<SCENLENGHT;i++) {
-				int s;
-				MPI_Recv(&s, 1, MPI_INT, slave, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			}
-			
-			
 			
 			it->score = score;
 			
@@ -370,22 +364,20 @@ int main_slave() {
 				}
 			}
 		}
-		
-		cout << "[" << world_rank << "] Received neural network\n";
-		
 		Network network(nn, false, 0);
-		cout << "[" << world_rank << "] Rating\n";
+		
 		int score = rate_network(network, SPFR, SCENLENGHT);
 		
-		cout << "[" << world_rank << "] Sending score\n";
 		MPI_Send(&score, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		
 	}
+	
+	return 0;
 }
 
 int main(int argc, char ** argv) {
 	
-	MPI_Init(&argc, &argv);
+	MPI_Init(NULL, NULL);
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
