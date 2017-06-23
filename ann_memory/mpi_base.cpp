@@ -173,9 +173,6 @@ int main_master(int argc, char ** argv) {
 			slave++;
 		}
 		
-		
-		cout << "\n";
-		
 		networks.sort(compare_scores);
 		
 		for (list<Network>::iterator it=networks.begin();it!=networks.end();it++) {
@@ -384,11 +381,12 @@ int main(int argc, char ** argv) {
 	
 	entity_count = world_size-1;
 	
+	srand(time(0)+((2+world_rank)<<4));
+	
 	if (world_rank == 0) {
-		srand(time(0)+((2+world_rank)<<4));
+		
 		main_master(argc, argv);
 	} else {
-		srand(time(0)/10);
 		main_slave();
 	}
 }
