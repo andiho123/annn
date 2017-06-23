@@ -46,7 +46,8 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	fseek(datafile, 0, SEEK_SET);
 	
-	int symlength[symbols] = {0};
+	int symlength[symbols];
+	memset(symlength, 0, symbols*sizeof(int));
 	
 	int j=0;
 	for (int i=0;i<dcount;i++) {
