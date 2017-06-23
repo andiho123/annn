@@ -71,7 +71,8 @@ int rate_network(Network network, int cycles, int iterations) {
 			fread(&quotes[i][j], sizeof(dpoint), 1, datafile);
 		}
 	}
-		
+	
+	fclose(datafile);
 	
 	int score = 0;
 	
