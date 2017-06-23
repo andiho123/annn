@@ -1,5 +1,5 @@
-#define NACTION 4
-#define NSTATE 4
+#define NACTION 16
+#define NSTATE 16
 
 #define MEMW 16
 
