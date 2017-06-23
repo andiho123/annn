@@ -16,6 +16,10 @@ struct dpoint {
 
 int rate_network(Network network, int cycles, int iterations) {
 	
+	
+	
+	
+	
 	FILE * datafile = fopen("all.ash", "rb");
 	
 	if (datafile == NULL) {
@@ -42,12 +46,12 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	fseek(datafile, 0, SEEK_SET);
 	
-	int symlength[symbols];
+	int symlength[symbols] = {0};
 	
 	int j=0;
 	for (int i=0;i<dcount;i++) {
 		fread(&data[i], sizeof(dpoint), 1, datafile);
-		if (data[i].new_file) {
+		if (data[i].new_file && i != 0) {
 			j++;
 			continue;
 		}
@@ -74,23 +78,16 @@ int rate_network(Network network, int cycles, int iterations) {
 		int sym = rand() % symbols;
 		int offset = rand() % (symlength[sym]-1000);
 		
-		if ((offset+6500) >= dcount) {
-			offset -= 6000;
-		}
 		
-		
-		
-		
-		int money = 100000;
+		float money = 100000;
 		int stock = 0;
-		
 		
 		for (int i=0;i<1000;i++) {
 			
 			float input[NSTATE] = {0};
 			
-			memcpy(input+0, quotes[sym][offset].price_avg, sizeof(float)*7);
-			memcpy(input+7, quotes[sym][offset].dprice_avg, sizeof(float)*7);
+			memcpy(input+0, quotes[sym][offset+i].price_avg, sizeof(float)*7);
+			memcpy(input+7, quotes[sym][offset+i].dprice_avg, sizeof(float)*7);
 			input[14] = money/100000;
 			input[15] = stock/1000;			
 			
@@ -98,42 +95,44 @@ int rate_network(Network network, int cycles, int iterations) {
 			
 			network.iteration(input, output);
 			
-			if (output[0] > sigmoid(0)) {
+			if (output[0] > sigmoid(0) && output[1] > 0) { // Buy stock
 				int amount = output[1] * 1000;
 				
-				if (amount * quotes[sym][offset].price_avg[0] > money) {
-					amount = money / quotes[sym][offset].price_avg[0];
+				if (amount * quotes[sym][offset+i].price_avg[0] > money) {
+					amount = money / quotes[sym][offset+i].price_avg[0];
 				}
 				
-				money -= amount * quotes[sym][offset].price_avg[0];
+				money -= amount * quotes[sym][offset+i].price_avg[0];
 				stock += amount;
 			}
 			
-			if (output[2] > sigmoid(0)) {
+			if (output[2] > sigmoid(0) && output[3] > 0) { // Sell stock
 				int amount = output[3] * 1000;
 				
 				if (amount > stock) {
 					amount = stock;
 				}
 				
-				money += amount*quotes[sym][offset].price_avg[0];
+				money += amount*quotes[sym][offset+i].price_avg[0];
 				stock -= amount;
 			}
 			
-			if (data[offset+i+1].new_file) {
-				score += ((money + stock*quotes[sym][offset].price_avg[0])-100000)*1000/i;
-				std::cout << "Offset " << offset << " Length " << i << " Money " << (money + stock*quotes[sym][offset].price_avg[0]) << "\n";
-				break;
-			}
+			
 		}
-		std::cout << "Offset " << offset << " Length " << 999 << " Money " << (money + stock*data[offset+999].price_avg[0]) << "\n";
-		score += (money + stock*data[offset+999].price_avg[0])-100000;
+		std::cout << " Money " << money << " Stock " << stock << " Quote " << quotes[sym][offset+999].price_avg[0] << "\n";
+		score += (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
 		
 		
 	}
 	
 	
 	free(data);
+	
+	for (int i=0;i<symbols;i++) {
+		free(quotes[i]);
+	}
+	
+	free(quotes);
 	
 	return score;
 	

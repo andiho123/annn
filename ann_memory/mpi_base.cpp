@@ -55,8 +55,15 @@ int main_master(int argc, char ** argv) {
 	cout << "[Master] Initialized\n";
 	
 	
-	char * filename;
+	char * filename = (char *) malloc(1);
 	bool combine_best = true;
+	int combine_mode = 0;
+	bool lognn = false;
+	
+	if (argc == 1) { // Dry run
+		*filename = 0x00;
+		goto dry_run;
+	}
 	
 	if (argc >= 2) {
 		filename = argv[1];
@@ -79,7 +86,7 @@ int main_master(int argc, char ** argv) {
 		exit(0);
 	}
 	
-	int combine_mode = 0;
+	
 	if (argc >= 4) {
 		if (strcmp(argv[3], "--average") == 0) {
 			combine_mode = 0;
@@ -101,13 +108,14 @@ int main_master(int argc, char ** argv) {
 	}
 	
 	
-	bool lognn = false;
+	
 	if (argc >= 5) {
 		if (strcmp(argv[4], "--lognn") == 0) {
 			lognn = true;
 		}
 	}
 	
+	dry_run: 
 	
 	if ((world_size-1) % 2 == 1) {
 		cout << "[Master] Uneven number of slave processes, aborting!\n";
@@ -327,7 +335,7 @@ int main_master(int argc, char ** argv) {
 		
 		
 		
-		mutation_rate = ((SPFR*SCENLENGHT*0.704375)-lavg)/(SPFR*SCENLENGHT*0.704375);
+		//mutation_rate = ((SPFR*SCENLENGHT*0.704375)-lavg)/(SPFR*SCENLENGHT*0.704375);
 		
 		cout << gen << "\t" << avg/(SPFR*SCENLENGHT) << "\t" << lavg/(SPFR*SCENLENGHT) << "\n";
 		logfile << avg/(SPFR*SCENLENGHT) << "," << lavg/(SPFR*SCENLENGHT) << "\n";

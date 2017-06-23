@@ -17,7 +17,6 @@ bool XNOR[2][2] = {{1, 0}, {0, 1}};
 
 int rate_network(Network network, int cycles, int iterations) {
 	
-	
 	int score = 0;
 	
 	bool states[NSTATE] = {0};
