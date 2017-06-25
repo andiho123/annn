@@ -14,6 +14,8 @@ struct dpoint {
 
 
 
+void dummy() {}
+
 int rate_network(Network network, int cycles, int iterations) {
 	
 	
@@ -74,7 +76,7 @@ int rate_network(Network network, int cycles, int iterations) {
 	
 	fclose(datafile);
 	
-	int score = 0;
+	long long score = 0;
 	
 	for (int cycle=0;cycle<10;cycle++) {
 		int sym = rand() % symbols;
@@ -84,6 +86,8 @@ int rate_network(Network network, int cycles, int iterations) {
 		float money = 100000;
 		int stock = 0;
 		
+		
+		
 		for (int i=0;i<1000;i++) {
 			
 			float input[NSTATE] = {0};
@@ -91,7 +95,7 @@ int rate_network(Network network, int cycles, int iterations) {
 			memcpy(input+0, quotes[sym][offset+i].price_avg, sizeof(float)*7);
 			memcpy(input+7, quotes[sym][offset+i].dprice_avg, sizeof(float)*7);
 			input[14] = money/100000;
-			input[15] = stock/1000;			
+			input[15] = stock/1000;
 			
 			float output[NACTION];
 			
@@ -106,6 +110,9 @@ int rate_network(Network network, int cycles, int iterations) {
 				
 				money -= amount * quotes[sym][offset+i].price_avg[0];
 				stock += amount;
+				
+				if (money < 0) { dummy(); }
+				int a=0;
 			}
 			
 			if (output[2] > sigmoid(0) && output[3] > 0) { // Sell stock
@@ -117,12 +124,20 @@ int rate_network(Network network, int cycles, int iterations) {
 				
 				money += amount*quotes[sym][offset+i].price_avg[0];
 				stock -= amount;
+				
+				if (money < 0) { dummy(); }
+				int a=0;
 			}
 			
 			
 		}
-		std::cout << " Money " << money << " Stock " << stock << " Quote " << quotes[sym][offset+999].price_avg[0] << "\n";
-		score += (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
+		
+		long long d = (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
+		//std::cout << "A " << money << "\n";
+		//std::cout << "B " << stock << "\n";
+		//std::cout << "C " << quotes[sym][offset+999].price_avg[0] << "\n";
+		//std::cout << d << "\n";
+		score += d;
 		
 		
 	}
@@ -139,3 +154,4 @@ int rate_network(Network network, int cycles, int iterations) {
 	return score;
 	
 }
+

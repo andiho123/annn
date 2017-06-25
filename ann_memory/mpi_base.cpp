@@ -312,7 +312,7 @@ int main_master(int argc, char ** argv) {
 				
 			}
 			
-			networks = new_nets;
+			//networks = new_nets;
 			
 		}
 		
@@ -372,7 +372,7 @@ int main_slave() {
 		Network network(nn, false, 0);
 		
 		int score = rate_network(network, SPFR, SCENLENGHT);
-		
+
 		MPI_Send(&score, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		
 	}
@@ -389,12 +389,11 @@ int main(int argc, char ** argv) {
 	
 	entity_count = world_size-1;
 	
-	srand(time(0)+((2+world_rank)<<4));
-	
 	if (world_rank == 0) {
-		
+		srand(time(0)+((2+world_rank)<<4));
 		main_master(argc, argv);
 	} else {
+		srand(time(NULL)/10);
 		main_slave();
 	}
 }
