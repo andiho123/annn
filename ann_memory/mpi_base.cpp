@@ -312,7 +312,7 @@ int main_master(int argc, char ** argv) {
 				
 			}
 			
-			//networks = new_nets;
+			networks = new_nets;
 			
 		}
 		

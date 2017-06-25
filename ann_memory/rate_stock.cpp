@@ -13,13 +13,7 @@ struct dpoint {
 };
 
 
-
-void dummy() {}
-
 int rate_network(Network network, int cycles, int iterations) {
-	
-	
-	
 	
 	
 	FILE * datafile = fopen("all.ash", "rb");
@@ -111,8 +105,6 @@ int rate_network(Network network, int cycles, int iterations) {
 				money -= amount * quotes[sym][offset+i].price_avg[0];
 				stock += amount;
 				
-				if (money < 0) { dummy(); }
-				int a=0;
 			}
 			
 			if (output[2] > sigmoid(0) && output[3] > 0) { // Sell stock
@@ -125,18 +117,13 @@ int rate_network(Network network, int cycles, int iterations) {
 				money += amount*quotes[sym][offset+i].price_avg[0];
 				stock -= amount;
 				
-				if (money < 0) { dummy(); }
-				int a=0;
 			}
 			
 			
 		}
 		
-		long long d = (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
-		//std::cout << "A " << money << "\n";
-		//std::cout << "B " << stock << "\n";
-		//std::cout << "C " << quotes[sym][offset+999].price_avg[0] << "\n";
-		//std::cout << d << "\n";
+		int d = (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
+		std::cout << d;
 		score += d;
 		
 		
