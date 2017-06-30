@@ -85,7 +85,7 @@ Network::Network(float nn_template[LC][NW][NDC], bool mutate, float mutation_rat
 		for (int l=0;l<LC;l++) {
 			for (int n=0;n<NW;n++) {
 				for (int d=0;d<NDC;d++) {
-					if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0) {
+					if (rand() % ((int) (1.0/MUTATION_COUNT)) == 0 || mutation_rate == -1) {
 						float delta_w = distribution(generator)*mutation_rate*0.5;
 						
 						if (d == NW+1) {

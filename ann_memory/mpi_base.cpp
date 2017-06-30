@@ -394,9 +394,10 @@ int main(int argc, char ** argv) {
 	if (argc >= 2) {
 		if (strcmp(argv[1], "--dry") == 0) {
 			float rho[LC][NW][NDC];
-			Network net(rho, true, 10);
-			
-			rate_network(net, 1, 1);
+			Network net(rho, true, -1);
+			while (1==1) {
+				rate_network(net, 1, 1);
+			}
 			return 0;
 		}
 	}
@@ -408,3 +409,5 @@ int main(int argc, char ** argv) {
 		main_slave();
 	}
 }
+
+

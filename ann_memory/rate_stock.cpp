@@ -76,16 +76,28 @@ int rate_network(Network network, int cycles, int iterations) {
 	long long score = 0;
 	
 	for (int cycle=0;cycle<10;cycle++) {
+		resym:
 		int sym = rand() % symbols;
+		if (sym == 50 || sym == 158 || sym == 13 || sym == 45 || sym == 71 || sym == 100 || sym == 112 || sym == 17 || sym == 53 || sym == 101 || sym == 2 || sym == 110 || sym == 148 ) {
+			goto resym;
+		}
+		
+		
 		int offset = rand() % (symlength[sym]-1000);
 		
 		
 		float money = 100000;
-		int stock = 0;
+		long int stock = 0;
 		
 		
 		
 		for (int i=0;i<1000;i++) {
+			
+			if (money < 0 || stock < 0 || fabs(money) > 1000000 || abs(stock) > 1000000) {
+				std::cout << "==============================================================================" << sym << " " << offset+i << "\n";
+				money = 100000;
+				stock = 0;
+			}
 			
 			float input[NSTATE] = {0};
 			
@@ -126,7 +138,7 @@ int rate_network(Network network, int cycles, int iterations) {
 		}
 		
 		int d = (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
-		std::cout << "M="<<money<<"\tS"<<stock<<"\tQ="<<quotes[sym][offset+999].price_avg[0]<<"\tSYM="<<sym<<"\n";
+		//std::cout << "M="<<money<<"\tS"<<stock<<"\tQ="<<quotes[sym][offset+999].price_avg[0]<<"\tSYM="<<sym<<"\n";
 		score += d;
 		
 		
