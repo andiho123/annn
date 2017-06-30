@@ -174,7 +174,6 @@ int main_master(int argc, char ** argv) {
 			int score = 0;
 			MPI_Recv(&score, 1, MPI_INT, slave, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			
-			
 			it->score = score;
 			
 			avg += ((float) it->score) / entity_count;
@@ -227,84 +226,85 @@ int main_master(int argc, char ** argv) {
 				
 				g = false;
 				
-				
-				float nn_median[LC][NW][NDC] = {0};
-				
-				for (int l=0;l<LC;l++) {
-					for (int n=0;n<NW;n++) {
-						
-						if (combine_mode == 0) {
-							for (int d=0;d<NDC;d++) {
-								nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
-							}
-						} 
-						
-						else if (combine_mode == 1) {
-							if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
-								memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
-							} else {
-								memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
-							}
-						} 
-						
-						else if (combine_mode == 2) {
+				for (int i=0;i<4;i++) {
+					
+					float nn_median[LC][NW][NDC] = {0};
+					
+					for (int l=0;l<LC;l++) {
+						for (int n=0;n<NW;n++) {
 							
-							for (int d=0;d<NDC;d++) {
-								if (gnet->mutation_map[l][n][d] > it->mutation_map[l][n][d]) {
-									nn_median[l][n][d] = gnet->nn[l][n][d];
+							if (combine_mode == 0) {
+								for (int d=0;d<NDC;d++) {
+									nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
 								}
+							} 
+							
+							else if (combine_mode == 1) {
+								if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
+									memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+								} else {
+									memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+								}
+							} 
+							
+							else if (combine_mode == 2) {
 								
-								else if (gnet->mutation_map[l][n][d] < it->mutation_map[l][n][d]) {
-									nn_median[l][n][d] = it->nn[l][n][d];
-								}
-								
-								else {
-									nn_median[l][n][d] = (gnet->nn[l][n][d]+it->nn[l][n][d])/2;
-								}
-							}
-						}
-						
-						else if (combine_mode == 3 || combine_mode == 4) { 
-							
-							bool gmut = false;
-							bool itmut = false;
-							
-							for (int d=0;d<NDC;d++) {
-								if (it->mutation_map[l][n][d]) {
-									itmut = true;
-								}
-								
-								if (gnet->mutation_map[l][n][d]) {
-									gmut = true;
-								}
-							}
-							
-							if (gmut > itmut) {
-								memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
-							} else if (itmut > gmut) {
-								memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
-							}
-							
-							else if (itmut == gmut) {
-								
-								if (combine_mode == 3) {
-									if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
-										memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
-									} else {
-										memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+								for (int d=0;d<NDC;d++) {
+									if (gnet->mutation_map[l][n][d] > it->mutation_map[l][n][d]) {
+										nn_median[l][n][d] = gnet->nn[l][n][d];
 									}
-								} else if (combine_mode == 4) {
-									for (int d=0;d<NDC;d++) {
-										nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
+									
+									else if (gnet->mutation_map[l][n][d] < it->mutation_map[l][n][d]) {
+										nn_median[l][n][d] = it->nn[l][n][d];
+									}
+									
+									else {
+										nn_median[l][n][d] = (gnet->nn[l][n][d]+it->nn[l][n][d])/2;
+									}
+								}
+							}
+							
+							else if (combine_mode == 3 || combine_mode == 4) { 
+								
+								bool gmut = false;
+								bool itmut = false;
+								
+								for (int d=0;d<NDC;d++) {
+									if (it->mutation_map[l][n][d]) {
+										itmut = true;
+									}
+									
+									if (gnet->mutation_map[l][n][d]) {
+										gmut = true;
 									}
 								}
 								
+								if (gmut > itmut) {
+									memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+								} else if (itmut > gmut) {
+									memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+								}
+								
+								else if (itmut == gmut) {
+									
+									if (combine_mode == 3) {
+										if (rand() % 100 < ( ((float) it->score) / (it->score+gnet->score))) {
+											memcpy(nn_median[l][n], it->nn[l][n], sizeof(nn_median[l][n]));
+										} else {
+											memcpy(nn_median[l][n], gnet->nn[l][n], sizeof(nn_median[l][n]));
+										}
+									} else if (combine_mode == 4) {
+										for (int d=0;d<NDC;d++) {
+											nn_median[l][n][d] = (it->nn[l][n][d]+gnet->nn[l][n][d])/2;
+										}
+									}
+									
+								}
 							}
 						}
 					}
-				}
 				
-				for (int i=0;i<4;i++) {
+				
 					Network net(nn_median, true, mutation_rate);
 					
 					new_nets.push_back(net);
@@ -337,8 +337,8 @@ int main_master(int argc, char ** argv) {
 		
 		//mutation_rate = ((SPFR*SCENLENGHT*0.704375)-lavg)/(SPFR*SCENLENGHT*0.704375);
 		
-		cout << gen << "\t" << avg/(SPFR*SCENLENGHT) << "\t" << lavg/(SPFR*SCENLENGHT) << "\n";
-		logfile << avg/(SPFR*SCENLENGHT) << "," << lavg/(SPFR*SCENLENGHT) << "\n";
+		cout << gen << "\t" << avg << "\t" << lavg << "\n";
+		logfile << avg << "," << lavg << "\n";
 		logfile.flush();	
 		
 		if (lognn && (gen % 32 == 0)) {
@@ -389,11 +389,22 @@ int main(int argc, char ** argv) {
 	
 	entity_count = world_size-1;
 	
+	srand(time(0)+((2+world_rank)<<4));
+	
+	if (argc >= 2) {
+		if (strcmp(argv[1], "--dry") == 0) {
+			float rho[LC][NW][NDC];
+			Network net(rho, true, 10);
+			
+			rate_network(net, 1, 1);
+			return 0;
+		}
+	}
+	
+	
 	if (world_rank == 0) {
-		srand(time(0)+((2+world_rank)<<4));
 		main_master(argc, argv);
 	} else {
-		srand(time(NULL)/10);
 		main_slave();
 	}
 }

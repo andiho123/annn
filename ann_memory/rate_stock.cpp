@@ -49,6 +49,9 @@ int rate_network(Network network, int cycles, int iterations) {
 	for (int i=0;i<dcount;i++) {
 		fread(&data[i], sizeof(dpoint), 1, datafile);
 		if (data[i].new_file && i != 0) {
+			if (symlength[j] <= 1000) {
+				std::cout << "WARNING: "<<j<<"\n";
+			} 
 			j++;
 			continue;
 		}
@@ -123,7 +126,7 @@ int rate_network(Network network, int cycles, int iterations) {
 		}
 		
 		int d = (money + stock*quotes[sym][offset+999].price_avg[0])-100000;
-		std::cout << d;
+		std::cout << "M="<<money<<"\tS"<<stock<<"\tQ="<<quotes[sym][offset+999].price_avg[0]<<"\tSYM="<<sym<<"\n";
 		score += d;
 		
 		
@@ -137,6 +140,7 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	
 	free(quotes);
+	
 	
 	return score;
 	
