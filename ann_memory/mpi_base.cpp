@@ -402,10 +402,12 @@ int main(int argc, char ** argv) {
 		}
 	}
 	
+	int slave_seed = rand();
 	
 	if (world_rank == 0) {
 		main_master(argc, argv);
 	} else {
+		srand(slave_seed);
 		main_slave();
 	}
 }
