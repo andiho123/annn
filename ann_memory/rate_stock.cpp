@@ -12,10 +12,13 @@ struct dpoint {
 	bool new_file;
 };
 
+struct dpoint ** quotes = 0;
+int symbols = 0;
+int * symlength = 0;
 
 int rate_network(Network network, int cycles, int iterations) {
 	
-	
+	if (quotes == 0) {
 	FILE * datafile = fopen("all.ash", "rb");
 	
 	if (datafile == NULL) {
@@ -32,7 +35,7 @@ int rate_network(Network network, int cycles, int iterations) {
 	
 	struct dpoint * data = (dpoint *) malloc(sizeof(dpoint)*dcount);
 	
-	int symbols = 0;
+	symbols = 0;
 	
 	for (int i=0;i<dcount;i++) {
 		fread(&data[i], sizeof(dpoint), 1, datafile);
@@ -42,9 +45,10 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	fseek(datafile, 0, SEEK_SET);
 	
-	int symlength[symbols];
-	memset(symlength, 0, symbols*sizeof(int));
+	symlength = (int *) malloc(sizeof(int) * symbols);
 	
+	memset(symlength, 0, symbols*sizeof(int));
+
 	int j=0;
 	for (int i=0;i<dcount;i++) {
 		fread(&data[i], sizeof(dpoint), 1, datafile);
@@ -57,10 +61,12 @@ int rate_network(Network network, int cycles, int iterations) {
 		}
 		symlength[j] ++;
 	}
+
+
 	fseek(datafile, 0, SEEK_SET);
 	
 	
-	struct dpoint ** quotes = (dpoint **) malloc(sizeof(dpoint *)*symbols);
+	quotes = (dpoint **) malloc(sizeof(dpoint *)*symbols);
 	
 	
 	for (int i=0;i<symbols;i++) {	
@@ -72,13 +78,15 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	
 	fclose(datafile);
+
+	}
 	
 	long long score = 0;
 	
 	for (int cycle=0;cycle<10;cycle++) {
 		resym:
 		int sym = rand() % symbols;
-		if (sym == 50 || sym == 158 || sym == 13 || sym == 45 || sym == 71 || sym == 100 || sym == 112 || sym == 17 || sym == 53 || sym == 101 || sym == 2 || sym == 110 || sym == 148 ) {
+		if (sym == 50 || sym == 158 || sym == 13 || sym == 45 || sym == 71 || sym == 100 || sym == 112 || sym == 17 || sym == 53 || sym == 101 || sym == 2 || sym == 110 || sym == 148 || sym == 105) {
 			goto resym;
 		}
 		
@@ -145,13 +153,13 @@ int rate_network(Network network, int cycles, int iterations) {
 	}
 	
 	
-	free(data);
+//	free(data);
 	
-	for (int i=0;i<symbols;i++) {
-		free(quotes[i]);
-	}
+//	for (int i=0;i<symbols;i++) {
+//		free(quotes[i]);
+//	}
 	
-	free(quotes);
+//	free(quotes);
 	
 	
 	return score;
