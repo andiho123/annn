@@ -329,7 +329,7 @@ int main_master(int argc, char ** argv) {
 			}
 		} else {
 			for (int i=0;i<128;i++) {
-				if (last_scores[i] >= 1000000) {
+				if (last_scores[i] <= 1000000) {
 					lavg += last_scores[i]/128;
 				}
 			}
