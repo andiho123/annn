@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
+#include <fstream>
+
 
 #include "network.h"
 
